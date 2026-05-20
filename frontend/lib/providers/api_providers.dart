@@ -33,6 +33,72 @@ class ApiService {
     }
   }
 
+  Future<User> register(String username, String email, String password) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'username': username,
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      return User.fromJson(jsonDecode(response.body));
+    } else {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Registration failed');
+    }
+  }
+
+  Future<User> login(String usernameOrEmail, String password) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'username_or_email': usernameOrEmail,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return User.fromJson(jsonDecode(response.body));
+    } else {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Login failed');
+    }
+  }
+
+  Future<void> forgotPassword(String email) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Failed to request password reset');
+    }
+  }
+
+  Future<void> resetPassword(String token, String newPassword) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'token': token,
+        'new_password': newPassword,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Password reset failed');
+    }
+  }
+
   Future<Letter> sendLetter({
     required String senderId,
     required String recipientUsername,

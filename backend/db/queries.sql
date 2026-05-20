@@ -7,8 +7,8 @@ SELECT * FROM users
 WHERE username = ? LIMIT 1;
 
 -- name: CreateUser :one
-INSERT INTO users (id, username)
-VALUES (?, ?)
+INSERT INTO users (id, username, email, password_hash)
+VALUES (?, ?, ?, ?)
 RETURNING *;
 
 -- name: CreateLetter :one
@@ -131,3 +131,28 @@ LEFT JOIN letters l ON l.id = (
     LIMIT 1
 )
 WHERE c.user_id = ?;
+
+-- name: GetUserByEmail :one
+SELECT * FROM users
+WHERE email = ? LIMIT 1;
+
+-- name: UpdateUserPassword :exec
+UPDATE users
+SET password_hash = ?
+WHERE id = ?;
+
+-- name: CreatePasswordReset :exec
+INSERT INTO password_resets (user_id, token, expires_at)
+VALUES (?, ?, ?);
+
+-- name: GetPasswordResetByToken :one
+SELECT * FROM password_resets
+WHERE token = ? LIMIT 1;
+
+-- name: DeletePasswordReset :exec
+DELETE FROM password_resets
+WHERE token = ?;
+
+-- name: DeleteExpiredPasswordResets :exec
+DELETE FROM password_resets
+WHERE expires_at < ?;

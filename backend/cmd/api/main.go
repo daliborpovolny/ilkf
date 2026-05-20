@@ -31,6 +31,12 @@ func main() {
 
 	log.Printf("Initializing database at: %s", dbPath)
 
+	// Development Mode: Drop the existing database on startup to recreate fresh schema
+	log.Printf("Development Mode: Dropping existing database at %s to start fresh...", dbPath)
+	_ = os.Remove(dbPath)
+	_ = os.Remove(dbPath + "-shm")
+	_ = os.Remove(dbPath + "-wal")
+
 	// Ensure the parent directory of the database file exists
 	dbDir := filepath.Dir(dbPath)
 	if dbDir != "." && dbDir != "" {
@@ -69,6 +75,8 @@ func main() {
 	}
 	// Auto-upgrade database schema with read_at column if it does not already exist
 	_, _ = dbConn.Exec("ALTER TABLE letters ADD COLUMN read_at DATETIME;")
+	addColumnIfNotExists(dbConn, "users", "email", "TEXT UNIQUE")
+	addColumnIfNotExists(dbConn, "users", "password_hash", "TEXT")
 	log.Println("Database initialized successfully.")
 
 	queries := db.New(dbConn)
@@ -105,5 +113,37 @@ func main() {
 	log.Printf("Starting ILKF Restructured Backend Server on port %s...", port)
 	if err := e.Start(":" + port); err != nil {
 		log.Fatalf("Server stopped: %v", err)
+	}
+}
+
+func addColumnIfNotExists(dbConn *sql.DB, tableName, columnName, columnDefinition string) {
+	rows, err := dbConn.Query("PRAGMA table_info(" + tableName + ")")
+	if err != nil {
+		log.Printf("Failed to check table info for %s: %v", tableName, err)
+		return
+	}
+	defer rows.Close()
+
+	exists := false
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dfltVal interface{}
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltVal, &pk); err != nil {
+			continue
+		}
+		if name == columnName {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		query := "ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + columnDefinition
+		if _, err := dbConn.Exec(query); err != nil {
+			log.Printf("Failed to add column %s to %s: %v", columnName, tableName, err)
+		} else {
+			log.Printf("Added column %s to %s successfully", columnName, tableName)
+		}
 	}
 }

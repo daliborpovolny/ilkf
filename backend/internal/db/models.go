@@ -27,8 +27,16 @@ type Letter struct {
 	ReadAt                    sql.NullTime   `json:"read_at"`
 }
 
+type PasswordReset struct {
+	UserID    string    `json:"user_id"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           string         `json:"id"`
+	Username     string         `json:"username"`
+	Email        sql.NullString `json:"email"`
+	PasswordHash sql.NullString `json:"password_hash"`
+	CreatedAt    time.Time      `json:"created_at"`
 }

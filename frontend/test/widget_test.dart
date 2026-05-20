@@ -15,7 +15,8 @@ void main() {
     // Verify that the vintage branding elements are rendered
     expect(find.text('I L K F'), findsOneWidget);
     expect(find.text('A Deliberate Messaging App'), findsOneWidget);
-    expect(find.text('Write your name in the Guest Book'), findsOneWidget);
+    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.text('Register Desk'), findsOneWidget);
 
     // Verify that the ElevatedButton with 'Open writing desk' exists
     expect(find.text('Open writing desk'), findsOneWidget);

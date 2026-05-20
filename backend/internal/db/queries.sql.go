@@ -52,22 +52,71 @@ func (q *Queries) CreateLetter(ctx context.Context, arg CreateLetterParams) (Let
 	return i, err
 }
 
+const createPasswordReset = `-- name: CreatePasswordReset :exec
+INSERT INTO password_resets (user_id, token, expires_at)
+VALUES (?, ?, ?)
+`
+
+type CreatePasswordResetParams struct {
+	UserID    string    `json:"user_id"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreatePasswordReset(ctx context.Context, arg CreatePasswordResetParams) error {
+	_, err := q.db.ExecContext(ctx, createPasswordReset, arg.UserID, arg.Token, arg.ExpiresAt)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, username)
-VALUES (?, ?)
-RETURNING id, username, created_at
+INSERT INTO users (id, username, email, password_hash)
+VALUES (?, ?, ?, ?)
+RETURNING id, username, email, password_hash, created_at
 `
 
 type CreateUserParams struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
+	ID           string         `json:"id"`
+	Username     string         `json:"username"`
+	Email        sql.NullString `json:"email"`
+	PasswordHash sql.NullString `json:"password_hash"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.ID, arg.Username)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.ID,
+		arg.Username,
+		arg.Email,
+		arg.PasswordHash,
+	)
 	var i User
-	err := row.Scan(&i.ID, &i.Username, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
 	return i, err
+}
+
+const deleteExpiredPasswordResets = `-- name: DeleteExpiredPasswordResets :exec
+DELETE FROM password_resets
+WHERE expires_at < ?
+`
+
+func (q *Queries) DeleteExpiredPasswordResets(ctx context.Context, expiresAt time.Time) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredPasswordResets, expiresAt)
+	return err
+}
+
+const deletePasswordReset = `-- name: DeletePasswordReset :exec
+DELETE FROM password_resets
+WHERE token = ?
+`
+
+func (q *Queries) DeletePasswordReset(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, deletePasswordReset, token)
+	return err
 }
 
 const getContactsWithLastLetterMetadata = `-- name: GetContactsWithLastLetterMetadata :many
@@ -388,6 +437,18 @@ func (q *Queries) GetOutbox(ctx context.Context, senderID string) ([]GetOutboxRo
 	return items, nil
 }
 
+const getPasswordResetByToken = `-- name: GetPasswordResetByToken :one
+SELECT user_id, token, expires_at FROM password_resets
+WHERE token = ? LIMIT 1
+`
+
+func (q *Queries) GetPasswordResetByToken(ctx context.Context, token string) (PasswordReset, error) {
+	row := q.db.QueryRowContext(ctx, getPasswordResetByToken, token)
+	var i PasswordReset
+	err := row.Scan(&i.UserID, &i.Token, &i.ExpiresAt)
+	return i, err
+}
+
 const getPendingIncoming = `-- name: GetPendingIncoming :many
 SELECT 
     l.id, 
@@ -450,27 +511,57 @@ func (q *Queries) GetPendingIncoming(ctx context.Context, arg GetPendingIncoming
 	return items, nil
 }
 
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, username, email, password_hash, created_at FROM users
+WHERE email = ? LIMIT 1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, created_at FROM users
+SELECT id, username, email, password_hash, created_at FROM users
 WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
-	err := row.Scan(&i.ID, &i.Username, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, created_at FROM users
+SELECT id, username, email, password_hash, created_at FROM users
 WHERE username = ? LIMIT 1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
 	var i User
-	err := row.Scan(&i.ID, &i.Username, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -487,6 +578,22 @@ type MarkLetterAsReadParams struct {
 
 func (q *Queries) MarkLetterAsRead(ctx context.Context, arg MarkLetterAsReadParams) error {
 	_, err := q.db.ExecContext(ctx, markLetterAsRead, arg.ReadAt, arg.ID)
+	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users
+SET password_hash = ?
+WHERE id = ?
+`
+
+type UpdateUserPasswordParams struct {
+	PasswordHash sql.NullString `json:"password_hash"`
+	ID           string         `json:"id"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
 	return err
 }
 

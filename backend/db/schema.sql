@@ -3,8 +3,18 @@
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
+    email TEXT UNIQUE,
+    password_hash TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS password_resets (
+    user_id TEXT NOT NULL,
+    token TEXT PRIMARY KEY,
+    expires_at DATETIME NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 
 CREATE TABLE IF NOT EXISTS letters (
     id TEXT PRIMARY KEY,

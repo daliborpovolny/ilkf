@@ -6,21 +6,29 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
 
 type Querier interface {
 	CreateLetter(ctx context.Context, arg CreateLetterParams) (Letter, error)
+	CreatePasswordReset(ctx context.Context, arg CreatePasswordResetParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteExpiredPasswordResets(ctx context.Context, expiresAt time.Time) error
+	DeletePasswordReset(ctx context.Context, token string) error
 	GetContactsWithLastLetterMetadata(ctx context.Context, userID string) ([]GetContactsWithLastLetterMetadataRow, error)
 	GetInbox(ctx context.Context, arg GetInboxParams) ([]GetInboxRow, error)
 	GetLetterByID(ctx context.Context, id string) (GetLetterByIDRow, error)
 	GetOpenLettersForUnregistered(ctx context.Context, arg GetOpenLettersForUnregisteredParams) ([]GetOpenLettersForUnregisteredRow, error)
 	GetOutbox(ctx context.Context, senderID string) ([]GetOutboxRow, error)
+	GetPasswordResetByToken(ctx context.Context, token string) (PasswordReset, error)
 	// Retrieve metadata for incoming letters that are still in transit (content is NOT returned)
 	GetPendingIncoming(ctx context.Context, arg GetPendingIncomingParams) ([]GetPendingIncomingRow, error)
+	GetUserByEmail(ctx context.Context, email sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	MarkLetterAsRead(ctx context.Context, arg MarkLetterAsReadParams) error
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpsertContact(ctx context.Context, arg UpsertContactParams) error
 }
 
