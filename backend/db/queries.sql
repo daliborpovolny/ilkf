@@ -17,34 +17,94 @@ VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetLetterByID :one
-SELECT * FROM letters
-WHERE id = ? LIMIT 1;
+SELECT 
+    l.id,
+    l.sender_id,
+    su.username AS sender_username,
+    l.recipient_id,
+    ru.username AS recipient_username,
+    l.recipient_name_unregistered,
+    l.subject,
+    l.content,
+    l.delivery_at,
+    l.created_at,
+    l.read_at
+FROM letters l
+JOIN users su ON l.sender_id = su.id
+LEFT JOIN users ru ON l.recipient_id = ru.id
+WHERE l.id = ? LIMIT 1;
+
+-- name: MarkLetterAsRead :exec
+UPDATE letters
+SET read_at = ?
+WHERE id = ? AND read_at IS NULL;
 
 -- name: GetInbox :many
-SELECT id, sender_id, recipient_id, recipient_name_unregistered, subject, content, delivery_at, created_at
-FROM letters
-WHERE recipient_id = ? AND delivery_at <= ?
-ORDER BY delivery_at DESC;
+SELECT 
+    l.id, 
+    l.sender_id, 
+    u.username AS sender_username,
+    l.recipient_id, 
+    l.recipient_name_unregistered, 
+    l.subject, 
+    l.content, 
+    l.delivery_at, 
+    l.created_at,
+    l.read_at
+FROM letters l
+JOIN users u ON l.sender_id = u.id
+WHERE l.recipient_id = ? AND l.delivery_at <= ?
+ORDER BY l.delivery_at DESC;
 
 -- name: GetPendingIncoming :many
 -- Retrieve metadata for incoming letters that are still in transit (content is NOT returned)
-SELECT id, sender_id, recipient_id, subject, delivery_at, created_at
-FROM letters
-WHERE recipient_id = ? AND delivery_at > ?
-ORDER BY delivery_at ASC;
+SELECT 
+    l.id, 
+    l.sender_id, 
+    u.username AS sender_username,
+    l.recipient_id, 
+    l.subject, 
+    l.delivery_at, 
+    l.created_at
+FROM letters l
+JOIN users u ON l.sender_id = u.id
+WHERE l.recipient_id = ? AND l.delivery_at > ?
+ORDER BY l.delivery_at ASC;
 
 -- name: GetOutbox :many
-SELECT * FROM letters
-WHERE sender_id = ?
-ORDER BY created_at DESC;
+SELECT 
+    l.id,
+    l.sender_id,
+    l.recipient_id,
+    u.username AS recipient_username,
+    l.recipient_name_unregistered,
+    l.subject,
+    l.content,
+    l.delivery_at,
+    l.created_at,
+    l.read_at
+FROM letters l
+LEFT JOIN users u ON l.recipient_id = u.id
+WHERE l.sender_id = ?
+ORDER BY l.created_at DESC;
 
 -- name: GetOpenLettersForUnregistered :many
-SELECT id, sender_id, recipient_name_unregistered, subject, content, delivery_at, created_at
-FROM letters
-WHERE recipient_id IS NULL 
-  AND recipient_name_unregistered = ? 
-  AND delivery_at <= ?
-ORDER BY delivery_at DESC;
+SELECT 
+    l.id, 
+    l.sender_id, 
+    u.username AS sender_username,
+    l.recipient_name_unregistered, 
+    l.subject, 
+    l.content, 
+    l.delivery_at, 
+    l.created_at,
+    l.read_at
+FROM letters l
+JOIN users u ON l.sender_id = u.id
+WHERE l.recipient_id IS NULL 
+  AND l.recipient_name_unregistered = ? 
+  AND l.delivery_at <= ?
+ORDER BY l.delivery_at DESC;
 
 -- name: UpsertContact :exec
 INSERT INTO contacts (user_id, contact_id, last_interaction_at)

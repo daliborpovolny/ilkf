@@ -67,6 +67,8 @@ func main() {
 	if _, err := dbConn.Exec(string(schemaBytes)); err != nil {
 		log.Fatalf("Failed to execute schema: %v", err)
 	}
+	// Auto-upgrade database schema with read_at column if it does not already exist
+	_, _ = dbConn.Exec("ALTER TABLE letters ADD COLUMN read_at DATETIME;")
 	log.Println("Database initialized successfully.")
 
 	queries := db.New(dbConn)

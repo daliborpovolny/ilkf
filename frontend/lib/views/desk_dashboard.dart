@@ -167,24 +167,58 @@ class _DeskDashboardState extends ConsumerState<DeskDashboard> {
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final letter = letters[index];
+              final isUnread = letter.readAt == null;
+
               return Card(
+                color: isUnread ? VintageTheme.parchmentLight : VintageTheme.parchmentLight.withOpacity(0.85),
                 child: ListTile(
-                  title: Text(
-                    letter.subject,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: VintageTheme.inkBlue),
+                  title: Row(
+                    children: [
+                      if (isUnread) ...[
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: VintageTheme.waxSealRed,
+                          ),
+                        ),
+                      ],
+                      Expanded(
+                        child: Text(
+                          letter.subject,
+                          style: TextStyle(
+                            fontWeight: isUnread ? FontWeight.w900 : FontWeight.bold,
+                            color: isUnread ? VintageTheme.inkBlue : VintageTheme.inkBlue.withOpacity(0.6),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  subtitle: Text('From: ${letter.senderId == 'system' ? 'System' : 'Registered user'}'),
-                  trailing: const Icon(Icons.drafts, color: VintageTheme.antiqueGold, size: 20),
+                  subtitle: Text(
+                    'From: ${letter.senderUsername.isNotEmpty ? letter.senderUsername : (letter.senderId == 'system' ? 'System' : 'Unknown')}',
+                    style: TextStyle(
+                      color: isUnread ? VintageTheme.inkBlue.withOpacity(0.8) : VintageTheme.inkBlue.withOpacity(0.5),
+                    ),
+                  ),
+                  trailing: Icon(
+                    isUnread ? Icons.mail : Icons.drafts,
+                    color: isUnread ? VintageTheme.waxSealRed : VintageTheme.antiqueGold,
+                    size: 20,
+                  ),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => LetterView(
                           letterId: letter.id,
-                          senderName: 'Friend',
+                          senderName: letter.senderUsername.isNotEmpty ? letter.senderUsername : 'Friend',
                           subject: letter.subject,
                         ),
                       ),
-                    );
+                    ).then((_) {
+                      ref.invalidate(inboxProvider);
+                    });
                   },
                 ),
               );
@@ -219,17 +253,52 @@ class _DeskDashboardState extends ConsumerState<DeskDashboard> {
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final letter = letters[index];
-              final recipientName = letter.recipientNameUnregistered ?? 'Registered User';
+              final recipientName = letter.recipientUsername != null && letter.recipientUsername!.isNotEmpty
+                  ? letter.recipientUsername!
+                  : (letter.recipientNameUnregistered ?? 'Anonymous');
+              
+              final isPublic = letter.recipientId == null;
+              final isInTransit = letter.deliveryAt.isAfter(DateTime.now());
+              final isRead = letter.readAt != null;
+              
+              String subtitleText = 'To: $recipientName';
+              IconData trailingIcon = Icons.markunread_mailbox;
+              Color iconColor = VintageTheme.inkBlue.withOpacity(0.5);
+
+              if (isPublic) {
+                subtitleText = 'Public Board: $recipientName';
+                trailingIcon = Icons.public;
+                iconColor = VintageTheme.antiqueGold;
+              } else if (isInTransit) {
+                subtitleText = 'To: $recipientName • In Transit';
+                trailingIcon = Icons.hourglass_top;
+                iconColor = Colors.grey;
+              } else if (isRead) {
+                subtitleText = 'To: $recipientName • Read';
+                trailingIcon = Icons.mark_email_read;
+                iconColor = VintageTheme.inkBlue;
+              } else {
+                subtitleText = 'To: $recipientName • Delivered (Unread)';
+                trailingIcon = Icons.markunread_mailbox;
+                iconColor = VintageTheme.waxSealRed;
+              }
+
               return Card(
                 child: ListTile(
                   title: Text(
                     letter.subject,
                     style: const TextStyle(fontWeight: FontWeight.bold, color: VintageTheme.inkBlue),
                   ),
-                  subtitle: Text('To: $recipientName'),
+                  subtitle: Text(
+                    subtitleText,
+                    style: TextStyle(
+                      color: isInTransit ? Colors.grey : VintageTheme.inkBlue.withOpacity(0.6),
+                      fontStyle: isInTransit ? FontStyle.italic : FontStyle.normal,
+                    ),
+                  ),
                   trailing: Icon(
-                    letter.recipientId != null ? Icons.markunread_mailbox : Icons.public,
-                    color: VintageTheme.inkBlue.withOpacity(0.5),
+                    trailingIcon,
+                    color: iconColor,
                     size: 20,
                   ),
                   onTap: () {
@@ -241,7 +310,9 @@ class _DeskDashboardState extends ConsumerState<DeskDashboard> {
                           subject: letter.subject,
                         ),
                       ),
-                    );
+                    ).then((_) {
+                      ref.invalidate(outboxProvider);
+                    });
                   },
                 ),
               );
@@ -340,17 +411,6 @@ class _DeskDashboardState extends ConsumerState<DeskDashboard> {
                           Text(
                             item.subject,
                             style: GoogleFonts.ebGaramond(fontSize: 16, fontWeight: FontWeight.bold, color: VintageTheme.inkBlue),
-                          ),
-                          Text(
-                            'Sender ID: ${item.senderId.substring(0, 8)}...',
-                            style: const TextStyle(fontSize: 11, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 8),
-                          // Skeuomorphic timeline bar showing courier progression
-                          const LinearProgressIndicator(
-                            color: VintageTheme.waxSealRed,
-                            backgroundColor: VintageTheme.paperBorder,
-                            minHeight: 3,
                           ),
                         ],
                       ),

@@ -12,14 +12,15 @@ type Querier interface {
 	CreateLetter(ctx context.Context, arg CreateLetterParams) (Letter, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetContactsWithLastLetterMetadata(ctx context.Context, userID string) ([]GetContactsWithLastLetterMetadataRow, error)
-	GetInbox(ctx context.Context, arg GetInboxParams) ([]Letter, error)
-	GetLetterByID(ctx context.Context, id string) (Letter, error)
+	GetInbox(ctx context.Context, arg GetInboxParams) ([]GetInboxRow, error)
+	GetLetterByID(ctx context.Context, id string) (GetLetterByIDRow, error)
 	GetOpenLettersForUnregistered(ctx context.Context, arg GetOpenLettersForUnregisteredParams) ([]GetOpenLettersForUnregisteredRow, error)
-	GetOutbox(ctx context.Context, senderID string) ([]Letter, error)
+	GetOutbox(ctx context.Context, senderID string) ([]GetOutboxRow, error)
 	// Retrieve metadata for incoming letters that are still in transit (content is NOT returned)
 	GetPendingIncoming(ctx context.Context, arg GetPendingIncomingParams) ([]GetPendingIncomingRow, error)
 	GetUserByID(ctx context.Context, id string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	MarkLetterAsRead(ctx context.Context, arg MarkLetterAsReadParams) error
 	UpsertContact(ctx context.Context, arg UpsertContactParams) error
 }
 

@@ -11,12 +11,12 @@ import (
 )
 
 type Service interface {
-	SendLetter(ctx context.Context, senderID, recipientUsername, unregisteredName, subject, content string, deliveryDelay time.Duration) (*db.Letter, error)
-	GetInbox(ctx context.Context, userID string) ([]db.Letter, error)
+	SendLetter(ctx context.Context, senderID, recipientUsername, unregisteredName, subject, content string, deliveryDelay time.Duration) (*db.GetLetterByIDRow, error)
+	GetInbox(ctx context.Context, userID string) ([]db.GetInboxRow, error)
 	GetPendingIncoming(ctx context.Context, userID string) ([]db.GetPendingIncomingRow, error)
-	GetOutbox(ctx context.Context, userID string) ([]db.Letter, error)
+	GetOutbox(ctx context.Context, userID string) ([]db.GetOutboxRow, error)
 	GetOpenLetters(ctx context.Context, unregisteredName string) ([]db.GetOpenLettersForUnregisteredRow, error)
-	GetLetterByID(ctx context.Context, letterID, requestingUserID string) (*db.Letter, error)
+	GetLetterByID(ctx context.Context, letterID, requestingUserID string) (*db.GetLetterByIDRow, error)
 }
 
 type service struct {
@@ -35,7 +35,7 @@ func (s *service) SendLetter(
 	ctx context.Context,
 	senderID, recipientUsername, unregisteredName, subject, content string,
 	deliveryDelay time.Duration,
-) (*db.Letter, error) {
+) (*db.GetLetterByIDRow, error) {
 	if senderID == "" || subject == "" || content == "" {
 		return nil, ErrInvalidInput
 	}
@@ -87,7 +87,7 @@ func (s *service) SendLetter(
 		return nil, ErrInvalidInput
 	}
 
-	createdLetter, err := txQueries.CreateLetter(ctx, db.CreateLetterParams{
+	_, err = txQueries.CreateLetter(ctx, db.CreateLetterParams{
 		ID:                         letterID,
 		SenderID:                   senderID,
 		RecipientID:                recipientID,
@@ -100,6 +100,11 @@ func (s *service) SendLetter(
 		return nil, err
 	}
 
+	createdLetter, err := txQueries.GetLetterByID(ctx, letterID)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -107,7 +112,7 @@ func (s *service) SendLetter(
 	return &createdLetter, nil
 }
 
-func (s *service) GetInbox(ctx context.Context, userID string) ([]db.Letter, error) {
+func (s *service) GetInbox(ctx context.Context, userID string) ([]db.GetInboxRow, error) {
 	return s.queries.GetInbox(ctx, db.GetInboxParams{
 		RecipientID: sql.NullString{String: userID, Valid: true},
 		DeliveryAt:  time.Now(),
@@ -121,7 +126,7 @@ func (s *service) GetPendingIncoming(ctx context.Context, userID string) ([]db.G
 	})
 }
 
-func (s *service) GetOutbox(ctx context.Context, userID string) ([]db.Letter, error) {
+func (s *service) GetOutbox(ctx context.Context, userID string) ([]db.GetOutboxRow, error) {
 	return s.queries.GetOutbox(ctx, userID)
 }
 
@@ -132,7 +137,7 @@ func (s *service) GetOpenLetters(ctx context.Context, unregisteredName string) (
 	})
 }
 
-func (s *service) GetLetterByID(ctx context.Context, letterID, requestingUserID string) (*db.Letter, error) {
+func (s *service) GetLetterByID(ctx context.Context, letterID, requestingUserID string) (*db.GetLetterByIDRow, error) {
 	letter, err := s.queries.GetLetterByID(ctx, letterID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -148,6 +153,22 @@ func (s *service) GetLetterByID(ctx context.Context, letterID, requestingUserID 
 	if letter.RecipientID.Valid && letter.RecipientID.String == requestingUserID {
 		if time.Now().Before(letter.DeliveryAt) {
 			return nil, ErrLetterUndelivered
+		}
+		if !letter.ReadAt.Valid {
+			now := time.Now()
+			tx, err := s.dbConn.BeginTx(ctx, nil)
+			if err == nil {
+				defer tx.Rollback()
+				txQueries := s.queries.WithTx(tx)
+				if err = txQueries.MarkLetterAsRead(ctx, db.MarkLetterAsReadParams{
+					ReadAt: sql.NullTime{Time: now, Valid: true},
+					ID:     letter.ID,
+				}); err == nil {
+					if err = tx.Commit(); err == nil {
+						letter.ReadAt = sql.NullTime{Time: now, Valid: true}
+					}
+				}
+			}
 		}
 		return &letter, nil
 	}

@@ -24,6 +24,7 @@ type Letter struct {
 	Content                   string         `json:"content"`
 	DeliveryAt                time.Time      `json:"delivery_at"`
 	CreatedAt                 time.Time      `json:"created_at"`
+	ReadAt                    sql.NullTime   `json:"read_at"`
 }
 
 type User struct {

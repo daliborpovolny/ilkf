@@ -35,6 +35,33 @@ class LetterView extends ConsumerWidget {
     return '${months[dt.month - 1]} $day$suffix, ${dt.year} at $hour:$minute $ampm';
   }
 
+  Widget _buildLogLine(String label, DateTime? timestamp, {String fallback = 'In transit / Pending'}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: GoogleFonts.ebGaramond(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: VintageTheme.inkBlue.withOpacity(0.8),
+            ),
+          ),
+          Text(
+            timestamp != null ? _formatDate(timestamp) : fallback,
+            style: GoogleFonts.ebGaramond(
+              fontSize: 14,
+              fontStyle: timestamp == null ? FontStyle.italic : FontStyle.normal,
+              color: timestamp == null ? VintageTheme.waxSealRed.withOpacity(0.8) : VintageTheme.inkBlue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final letterDetail = ref.watch(letterDetailProvider(letterId));
@@ -82,12 +109,54 @@ class LetterView extends ConsumerWidget {
                     Text(
                       letter.recipientNameUnregistered != null
                           ? 'Addressed to Open Board: ${letter.recipientNameUnregistered}'
-                          : 'Addressed to: You',
+                          : (senderName == 'You' && letter.recipientUsername != null)
+                              ? 'Addressed to: ${letter.recipientUsername}'
+                              : 'Addressed to: You',
                       style: GoogleFonts.ebGaramond(
                         fontSize: 16,
                         color: VintageTheme.inkBlue.withOpacity(0.7),
                       ),
                     ),
+                    if (senderName == 'You' && letter.recipientId != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: VintageTheme.parchmentDark,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: VintageTheme.paperBorder, width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.history, color: VintageTheme.waxSealRed, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'COURIER DISPATCH STAMP',
+                                  style: GoogleFonts.ebGaramond(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: VintageTheme.waxSealRed,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            _buildLogLine('Dispatched', letter.createdAt),
+                            _buildLogLine('Delivered', letter.deliveryAt),
+                            _buildLogLine(
+                              'Opened by recipient',
+                              letter.readAt,
+                              fallback: 'Recipient hasn\'t opened this envelope yet.',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     // Divider representing paper tear/line
                     Container(

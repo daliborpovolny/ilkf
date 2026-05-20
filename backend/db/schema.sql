@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS letters (
     content TEXT NOT NULL,
     delivery_at DATETIME NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME, -- NULL if not read yet
     FOREIGN KEY(sender_id) REFERENCES users(id),
     FOREIGN KEY(recipient_id) REFERENCES users(id)
 );

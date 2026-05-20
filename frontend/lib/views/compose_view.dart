@@ -71,14 +71,28 @@ class _ComposeViewState extends ConsumerState<ComposeView> {
       final recipientUser = _isUnregistered ? '' : _recipientController.text.trim();
       final unregisteredName = _isUnregistered ? _recipientController.text.trim() : '';
 
-      await ref.read(apiServiceProvider).sendLetter(
-            senderId: user.id,
-            recipientUsername: recipientUser,
-            recipientNameUnregistered: unregisteredName,
-            subject: _subjectController.text.trim(),
-            content: _contentController.text,
-            delaySeconds: _delaySeconds.round(),
-          );
+      final delayFuture = Future.delayed(const Duration(seconds: 3));
+      
+      dynamic apiError;
+      try {
+        await ref.read(apiServiceProvider).sendLetter(
+              senderId: user.id,
+              recipientUsername: recipientUser,
+              recipientNameUnregistered: unregisteredName,
+              subject: _subjectController.text.trim(),
+              content: _contentController.text,
+              delaySeconds: _delaySeconds.round(),
+            );
+      } catch (err) {
+        apiError = err;
+      }
+
+      // Always wait for the 3-second skeuomorphic wax sealing animation to fully finish
+      await delayFuture;
+
+      if (apiError != null) {
+        throw apiError;
+      }
 
       // Force Riverpod to refresh outbox and pending
       ref.invalidate(outboxProvider);

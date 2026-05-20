@@ -17,34 +17,43 @@ class User {
 class Letter {
   final String id;
   final String senderId;
+  final String senderUsername;
   final String? recipientId;
+  final String? recipientUsername;
   final String? recipientNameUnregistered;
   final String subject;
   final String content;
   final DateTime deliveryAt;
   final DateTime createdAt;
+  final DateTime? readAt;
 
   Letter({
     required this.id,
     required this.senderId,
+    required this.senderUsername,
     this.recipientId,
+    this.recipientUsername,
     this.recipientNameUnregistered,
     required this.subject,
     required this.content,
     required this.deliveryAt,
     required this.createdAt,
+    this.readAt,
   });
 
   factory Letter.fromJson(Map<String, dynamic> json) {
     return Letter(
       id: json['id'] ?? '',
       senderId: json['sender_id'] ?? '',
+      senderUsername: json['sender_username'] ?? '',
       recipientId: json['recipient_id'],
+      recipientUsername: json['recipient_username'],
       recipientNameUnregistered: json['recipient_name_unregistered'],
       subject: json['subject'] ?? '',
       content: json['content'] ?? '',
       deliveryAt: DateTime.parse(json['delivery_at'] ?? DateTime.now().toIso8601String()),
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      readAt: json['read_at'] != null ? DateTime.parse(json['read_at']) : null,
     );
   }
 
@@ -54,6 +63,7 @@ class Letter {
 class PendingLetter {
   final String id;
   final String senderId;
+  final String senderUsername;
   final String? recipientId;
   final String subject;
   final DateTime deliveryAt;
@@ -62,6 +72,7 @@ class PendingLetter {
   PendingLetter({
     required this.id,
     required this.senderId,
+    required this.senderUsername,
     this.recipientId,
     required this.subject,
     required this.deliveryAt,
@@ -72,6 +83,7 @@ class PendingLetter {
     return PendingLetter(
       id: json['id'] ?? '',
       senderId: json['sender_id'] ?? '',
+      senderUsername: json['sender_username'] ?? '',
       recipientId: json['recipient_id'],
       subject: json['subject'] ?? '',
       deliveryAt: DateTime.parse(json['delivery_at'] ?? DateTime.now().toIso8601String()),

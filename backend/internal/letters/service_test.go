@@ -142,3 +142,182 @@ func TestDelayedLetterDelivery(t *testing.T) {
 		t.Errorf("expected alice to see full content of her own sent letter, got %s", readFutureAlice.Content)
 	}
 }
+
+func TestMultiUserFlowWithUsernames(t *testing.T) {
+	dbConn, lettersSvc, authSvc := setupTestDB(t)
+	defer dbConn.Close()
+
+	ctx := context.Background()
+
+	// 1. Create two user accounts
+	alice, err := authSvc.RegisterOrLogin(ctx, "alice")
+	if err != nil {
+		t.Fatalf("failed to register alice: %v", err)
+	}
+
+	bob, err := authSvc.RegisterOrLogin(ctx, "bob")
+	if err != nil {
+		t.Fatalf("failed to register bob: %v", err)
+	}
+
+	// 2. Send instant letter from alice to bob
+	letter, err := lettersSvc.SendLetter(
+		ctx,
+		alice.ID,
+		"bob",
+		"",
+		"Greetings",
+		"Dear Bob, this is Alice.",
+		0,
+	)
+	if err != nil {
+		t.Fatalf("failed to send letter: %v", err)
+	}
+
+	if letter.SenderUsername != "alice" {
+		t.Errorf("expected SenderUsername to be 'alice', got %s", letter.SenderUsername)
+	}
+	if !letter.RecipientUsername.Valid || letter.RecipientUsername.String != "bob" {
+		t.Errorf("expected RecipientUsername to be 'bob', got %v", letter.RecipientUsername)
+	}
+
+	// 3. Verify outbox of alice
+	outbox, err := lettersSvc.GetOutbox(ctx, alice.ID)
+	if err != nil {
+		t.Fatalf("failed to get outbox: %v", err)
+	}
+	if len(outbox) != 1 {
+		t.Fatalf("expected outbox length 1, got %d", len(outbox))
+	}
+	if !outbox[0].RecipientUsername.Valid || outbox[0].RecipientUsername.String != "bob" {
+		t.Errorf("expected outbox letter recipient_username to be 'bob', got %v", outbox[0].RecipientUsername)
+	}
+
+	// 4. Verify inbox of bob
+	inbox, err := lettersSvc.GetInbox(ctx, bob.ID)
+	if err != nil {
+		t.Fatalf("failed to get inbox: %v", err)
+	}
+	if len(inbox) != 1 {
+		t.Fatalf("expected inbox length 1, got %d", len(inbox))
+	}
+	if inbox[0].SenderUsername != "alice" {
+		t.Errorf("expected inbox letter sender_username to be 'alice', got %s", inbox[0].SenderUsername)
+	}
+
+	// 5. Send delayed letter from bob to alice
+	_, err = lettersSvc.SendLetter(
+		ctx,
+		bob.ID,
+		"alice",
+		"",
+		"Reply Delayed",
+		"Dear Alice, replying later.",
+		10*time.Hour,
+	)
+	if err != nil {
+		t.Fatalf("failed to send delayed letter: %v", err)
+	}
+
+	// 6. Verify pending list of alice
+	pending, err := lettersSvc.GetPendingIncoming(ctx, alice.ID)
+	if err != nil {
+		t.Fatalf("failed to get pending incoming: %v", err)
+	}
+	if len(pending) != 1 {
+		t.Fatalf("expected pending length 1, got %d", len(pending))
+	}
+	if pending[0].SenderUsername != "bob" {
+		t.Errorf("expected pending letter sender_username to be 'bob', got %s", pending[0].SenderUsername)
+	}
+}
+
+func TestReadReceiptsAndDeliveryStates(t *testing.T) {
+	dbConn, lettersSvc, authSvc := setupTestDB(t)
+	defer dbConn.Close()
+
+	ctx := context.Background()
+
+	// 1. Create registered users
+	alice, err := authSvc.RegisterOrLogin(ctx, "alice")
+	if err != nil {
+		t.Fatalf("failed to register alice: %v", err)
+	}
+	bob, err := authSvc.RegisterOrLogin(ctx, "bob")
+	if err != nil {
+		t.Fatalf("failed to register bob: %v", err)
+	}
+
+	// 2. Alice sends an instant letter to Bob
+	letter, err := lettersSvc.SendLetter(
+		ctx,
+		alice.ID,
+		"bob",
+		"",
+		"Read Receipt Test",
+		"Can you read this?",
+		0,
+	)
+	if err != nil {
+		t.Fatalf("failed to send letter: %v", err)
+	}
+
+	// 3. Verify initially read_at is not valid (unread)
+	if letter.ReadAt.Valid {
+		t.Errorf("expected new letter to have invalid ReadAt, got valid: %v", letter.ReadAt.Time)
+	}
+
+	// Verify in inbox of Bob it is unread
+	inbox, err := lettersSvc.GetInbox(ctx, bob.ID)
+	if err != nil {
+		t.Fatalf("failed to get inbox: %v", err)
+	}
+	if len(inbox) != 1 {
+		t.Fatalf("expected inbox length 1, got %d", len(inbox))
+	}
+	if inbox[0].ReadAt.Valid {
+		t.Errorf("expected inbox letter to have invalid ReadAt, got valid")
+	}
+
+	// Verify in outbox of Alice it is unread
+	outbox, err := lettersSvc.GetOutbox(ctx, alice.ID)
+	if err != nil {
+		t.Fatalf("failed to get outbox: %v", err)
+	}
+	if len(outbox) != 1 {
+		t.Fatalf("expected outbox length 1, got %d", len(outbox))
+	}
+	if outbox[0].ReadAt.Valid {
+		t.Errorf("expected outbox letter to have invalid ReadAt, got valid")
+	}
+
+	// 4. Alice retrieves the letter (as sender). It should NOT be marked as read!
+	aliceRead, err := lettersSvc.GetLetterByID(ctx, letter.ID, alice.ID)
+	if err != nil {
+		t.Fatalf("failed to read letter: %v", err)
+	}
+	if aliceRead.ReadAt.Valid {
+		t.Errorf("expected letter retrieved by sender to remain unread, but got read_at set")
+	}
+
+	// 5. Bob retrieves the letter (as recipient). It SHOULD be marked as read!
+	bobRead, err := lettersSvc.GetLetterByID(ctx, letter.ID, bob.ID)
+	if err != nil {
+		t.Fatalf("failed to read letter: %v", err)
+	}
+	if !bobRead.ReadAt.Valid {
+		t.Errorf("expected letter retrieved by recipient to have read_at set, got invalid")
+	}
+
+	// 6. Verify inbox and outbox now reflect read status!
+	inbox, _ = lettersSvc.GetInbox(ctx, bob.ID)
+	if !inbox[0].ReadAt.Valid {
+		t.Errorf("expected inbox letter to now have valid ReadAt")
+	}
+
+	outbox, _ = lettersSvc.GetOutbox(ctx, alice.ID)
+	if !outbox[0].ReadAt.Valid {
+		t.Errorf("expected outbox letter to now have valid ReadAt")
+	}
+}
+

@@ -69,7 +69,7 @@ func (h *handler) SendLetter(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, letter)
+	return c.JSON(http.StatusCreated, ToLetterResponse(*letter))
 }
 
 func (h *handler) GetInbox(c echo.Context) error {
@@ -83,7 +83,7 @@ func (h *handler) GetInbox(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, letters)
+	return c.JSON(http.StatusOK, ToInboxLettersResponse(letters))
 }
 
 func (h *handler) GetPendingIncoming(c echo.Context) error {
@@ -97,7 +97,7 @@ func (h *handler) GetPendingIncoming(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, pending)
+	return c.JSON(http.StatusOK, ToPendingLettersResponse(pending))
 }
 
 func (h *handler) GetOutbox(c echo.Context) error {
@@ -111,7 +111,7 @@ func (h *handler) GetOutbox(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, letters)
+	return c.JSON(http.StatusOK, ToOutboxLettersResponse(letters))
 }
 
 func (h *handler) GetLetterByID(c echo.Context) error {
@@ -132,7 +132,7 @@ func (h *handler) GetLetterByID(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, letter)
+	return c.JSON(http.StatusOK, ToLetterResponse(*letter))
 }
 
 func (h *handler) GetOpenLetters(c echo.Context) error {
@@ -142,6 +142,6 @@ func (h *handler) GetOpenLetters(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, letters)
+	return c.JSON(http.StatusOK, ToOpenLettersResponse(letters))
 }
 

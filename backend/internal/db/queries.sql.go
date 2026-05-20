@@ -14,7 +14,7 @@ import (
 const createLetter = `-- name: CreateLetter :one
 INSERT INTO letters (id, sender_id, recipient_id, recipient_name_unregistered, subject, content, delivery_at)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, sender_id, recipient_id, recipient_name_unregistered, subject, content, delivery_at, created_at
+RETURNING id, sender_id, recipient_id, recipient_name_unregistered, subject, content, delivery_at, created_at, read_at
 `
 
 type CreateLetterParams struct {
@@ -47,6 +47,7 @@ func (q *Queries) CreateLetter(ctx context.Context, arg CreateLetterParams) (Let
 		&i.Content,
 		&i.DeliveryAt,
 		&i.CreatedAt,
+		&i.ReadAt,
 	)
 	return i, err
 }
@@ -132,10 +133,21 @@ func (q *Queries) GetContactsWithLastLetterMetadata(ctx context.Context, userID 
 }
 
 const getInbox = `-- name: GetInbox :many
-SELECT id, sender_id, recipient_id, recipient_name_unregistered, subject, content, delivery_at, created_at
-FROM letters
-WHERE recipient_id = ? AND delivery_at <= ?
-ORDER BY delivery_at DESC
+SELECT 
+    l.id, 
+    l.sender_id, 
+    u.username AS sender_username,
+    l.recipient_id, 
+    l.recipient_name_unregistered, 
+    l.subject, 
+    l.content, 
+    l.delivery_at, 
+    l.created_at,
+    l.read_at
+FROM letters l
+JOIN users u ON l.sender_id = u.id
+WHERE l.recipient_id = ? AND l.delivery_at <= ?
+ORDER BY l.delivery_at DESC
 `
 
 type GetInboxParams struct {
@@ -143,24 +155,39 @@ type GetInboxParams struct {
 	DeliveryAt  time.Time      `json:"delivery_at"`
 }
 
-func (q *Queries) GetInbox(ctx context.Context, arg GetInboxParams) ([]Letter, error) {
+type GetInboxRow struct {
+	ID                        string         `json:"id"`
+	SenderID                  string         `json:"sender_id"`
+	SenderUsername            string         `json:"sender_username"`
+	RecipientID               sql.NullString `json:"recipient_id"`
+	RecipientNameUnregistered sql.NullString `json:"recipient_name_unregistered"`
+	Subject                   string         `json:"subject"`
+	Content                   string         `json:"content"`
+	DeliveryAt                time.Time      `json:"delivery_at"`
+	CreatedAt                 time.Time      `json:"created_at"`
+	ReadAt                    sql.NullTime   `json:"read_at"`
+}
+
+func (q *Queries) GetInbox(ctx context.Context, arg GetInboxParams) ([]GetInboxRow, error) {
 	rows, err := q.db.QueryContext(ctx, getInbox, arg.RecipientID, arg.DeliveryAt)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Letter
+	var items []GetInboxRow
 	for rows.Next() {
-		var i Letter
+		var i GetInboxRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.SenderID,
+			&i.SenderUsername,
 			&i.RecipientID,
 			&i.RecipientNameUnregistered,
 			&i.Subject,
 			&i.Content,
 			&i.DeliveryAt,
 			&i.CreatedAt,
+			&i.ReadAt,
 		); err != nil {
 			return nil, err
 		}
@@ -176,33 +203,74 @@ func (q *Queries) GetInbox(ctx context.Context, arg GetInboxParams) ([]Letter, e
 }
 
 const getLetterByID = `-- name: GetLetterByID :one
-SELECT id, sender_id, recipient_id, recipient_name_unregistered, subject, content, delivery_at, created_at FROM letters
-WHERE id = ? LIMIT 1
+SELECT 
+    l.id,
+    l.sender_id,
+    su.username AS sender_username,
+    l.recipient_id,
+    ru.username AS recipient_username,
+    l.recipient_name_unregistered,
+    l.subject,
+    l.content,
+    l.delivery_at,
+    l.created_at,
+    l.read_at
+FROM letters l
+JOIN users su ON l.sender_id = su.id
+LEFT JOIN users ru ON l.recipient_id = ru.id
+WHERE l.id = ? LIMIT 1
 `
 
-func (q *Queries) GetLetterByID(ctx context.Context, id string) (Letter, error) {
+type GetLetterByIDRow struct {
+	ID                        string         `json:"id"`
+	SenderID                  string         `json:"sender_id"`
+	SenderUsername            string         `json:"sender_username"`
+	RecipientID               sql.NullString `json:"recipient_id"`
+	RecipientUsername         sql.NullString `json:"recipient_username"`
+	RecipientNameUnregistered sql.NullString `json:"recipient_name_unregistered"`
+	Subject                   string         `json:"subject"`
+	Content                   string         `json:"content"`
+	DeliveryAt                time.Time      `json:"delivery_at"`
+	CreatedAt                 time.Time      `json:"created_at"`
+	ReadAt                    sql.NullTime   `json:"read_at"`
+}
+
+func (q *Queries) GetLetterByID(ctx context.Context, id string) (GetLetterByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getLetterByID, id)
-	var i Letter
+	var i GetLetterByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.SenderID,
+		&i.SenderUsername,
 		&i.RecipientID,
+		&i.RecipientUsername,
 		&i.RecipientNameUnregistered,
 		&i.Subject,
 		&i.Content,
 		&i.DeliveryAt,
 		&i.CreatedAt,
+		&i.ReadAt,
 	)
 	return i, err
 }
 
 const getOpenLettersForUnregistered = `-- name: GetOpenLettersForUnregistered :many
-SELECT id, sender_id, recipient_name_unregistered, subject, content, delivery_at, created_at
-FROM letters
-WHERE recipient_id IS NULL 
-  AND recipient_name_unregistered = ? 
-  AND delivery_at <= ?
-ORDER BY delivery_at DESC
+SELECT 
+    l.id, 
+    l.sender_id, 
+    u.username AS sender_username,
+    l.recipient_name_unregistered, 
+    l.subject, 
+    l.content, 
+    l.delivery_at, 
+    l.created_at,
+    l.read_at
+FROM letters l
+JOIN users u ON l.sender_id = u.id
+WHERE l.recipient_id IS NULL 
+  AND l.recipient_name_unregistered = ? 
+  AND l.delivery_at <= ?
+ORDER BY l.delivery_at DESC
 `
 
 type GetOpenLettersForUnregisteredParams struct {
@@ -213,11 +281,13 @@ type GetOpenLettersForUnregisteredParams struct {
 type GetOpenLettersForUnregisteredRow struct {
 	ID                        string         `json:"id"`
 	SenderID                  string         `json:"sender_id"`
+	SenderUsername            string         `json:"sender_username"`
 	RecipientNameUnregistered sql.NullString `json:"recipient_name_unregistered"`
 	Subject                   string         `json:"subject"`
 	Content                   string         `json:"content"`
 	DeliveryAt                time.Time      `json:"delivery_at"`
 	CreatedAt                 time.Time      `json:"created_at"`
+	ReadAt                    sql.NullTime   `json:"read_at"`
 }
 
 func (q *Queries) GetOpenLettersForUnregistered(ctx context.Context, arg GetOpenLettersForUnregisteredParams) ([]GetOpenLettersForUnregisteredRow, error) {
@@ -232,11 +302,13 @@ func (q *Queries) GetOpenLettersForUnregistered(ctx context.Context, arg GetOpen
 		if err := rows.Scan(
 			&i.ID,
 			&i.SenderID,
+			&i.SenderUsername,
 			&i.RecipientNameUnregistered,
 			&i.Subject,
 			&i.Content,
 			&i.DeliveryAt,
 			&i.CreatedAt,
+			&i.ReadAt,
 		); err != nil {
 			return nil, err
 		}
@@ -252,29 +324,56 @@ func (q *Queries) GetOpenLettersForUnregistered(ctx context.Context, arg GetOpen
 }
 
 const getOutbox = `-- name: GetOutbox :many
-SELECT id, sender_id, recipient_id, recipient_name_unregistered, subject, content, delivery_at, created_at FROM letters
-WHERE sender_id = ?
-ORDER BY created_at DESC
+SELECT 
+    l.id,
+    l.sender_id,
+    l.recipient_id,
+    u.username AS recipient_username,
+    l.recipient_name_unregistered,
+    l.subject,
+    l.content,
+    l.delivery_at,
+    l.created_at,
+    l.read_at
+FROM letters l
+LEFT JOIN users u ON l.recipient_id = u.id
+WHERE l.sender_id = ?
+ORDER BY l.created_at DESC
 `
 
-func (q *Queries) GetOutbox(ctx context.Context, senderID string) ([]Letter, error) {
+type GetOutboxRow struct {
+	ID                        string         `json:"id"`
+	SenderID                  string         `json:"sender_id"`
+	RecipientID               sql.NullString `json:"recipient_id"`
+	RecipientUsername         sql.NullString `json:"recipient_username"`
+	RecipientNameUnregistered sql.NullString `json:"recipient_name_unregistered"`
+	Subject                   string         `json:"subject"`
+	Content                   string         `json:"content"`
+	DeliveryAt                time.Time      `json:"delivery_at"`
+	CreatedAt                 time.Time      `json:"created_at"`
+	ReadAt                    sql.NullTime   `json:"read_at"`
+}
+
+func (q *Queries) GetOutbox(ctx context.Context, senderID string) ([]GetOutboxRow, error) {
 	rows, err := q.db.QueryContext(ctx, getOutbox, senderID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Letter
+	var items []GetOutboxRow
 	for rows.Next() {
-		var i Letter
+		var i GetOutboxRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.SenderID,
 			&i.RecipientID,
+			&i.RecipientUsername,
 			&i.RecipientNameUnregistered,
 			&i.Subject,
 			&i.Content,
 			&i.DeliveryAt,
 			&i.CreatedAt,
+			&i.ReadAt,
 		); err != nil {
 			return nil, err
 		}
@@ -290,10 +389,18 @@ func (q *Queries) GetOutbox(ctx context.Context, senderID string) ([]Letter, err
 }
 
 const getPendingIncoming = `-- name: GetPendingIncoming :many
-SELECT id, sender_id, recipient_id, subject, delivery_at, created_at
-FROM letters
-WHERE recipient_id = ? AND delivery_at > ?
-ORDER BY delivery_at ASC
+SELECT 
+    l.id, 
+    l.sender_id, 
+    u.username AS sender_username,
+    l.recipient_id, 
+    l.subject, 
+    l.delivery_at, 
+    l.created_at
+FROM letters l
+JOIN users u ON l.sender_id = u.id
+WHERE l.recipient_id = ? AND l.delivery_at > ?
+ORDER BY l.delivery_at ASC
 `
 
 type GetPendingIncomingParams struct {
@@ -302,12 +409,13 @@ type GetPendingIncomingParams struct {
 }
 
 type GetPendingIncomingRow struct {
-	ID          string         `json:"id"`
-	SenderID    string         `json:"sender_id"`
-	RecipientID sql.NullString `json:"recipient_id"`
-	Subject     string         `json:"subject"`
-	DeliveryAt  time.Time      `json:"delivery_at"`
-	CreatedAt   time.Time      `json:"created_at"`
+	ID             string         `json:"id"`
+	SenderID       string         `json:"sender_id"`
+	SenderUsername string         `json:"sender_username"`
+	RecipientID    sql.NullString `json:"recipient_id"`
+	Subject        string         `json:"subject"`
+	DeliveryAt     time.Time      `json:"delivery_at"`
+	CreatedAt      time.Time      `json:"created_at"`
 }
 
 // Retrieve metadata for incoming letters that are still in transit (content is NOT returned)
@@ -323,6 +431,7 @@ func (q *Queries) GetPendingIncoming(ctx context.Context, arg GetPendingIncoming
 		if err := rows.Scan(
 			&i.ID,
 			&i.SenderID,
+			&i.SenderUsername,
 			&i.RecipientID,
 			&i.Subject,
 			&i.DeliveryAt,
@@ -363,6 +472,22 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 	var i User
 	err := row.Scan(&i.ID, &i.Username, &i.CreatedAt)
 	return i, err
+}
+
+const markLetterAsRead = `-- name: MarkLetterAsRead :exec
+UPDATE letters
+SET read_at = ?
+WHERE id = ? AND read_at IS NULL
+`
+
+type MarkLetterAsReadParams struct {
+	ReadAt sql.NullTime `json:"read_at"`
+	ID     string       `json:"id"`
+}
+
+func (q *Queries) MarkLetterAsRead(ctx context.Context, arg MarkLetterAsReadParams) error {
+	_, err := q.db.ExecContext(ctx, markLetterAsRead, arg.ReadAt, arg.ID)
+	return err
 }
 
 const upsertContact = `-- name: UpsertContact :exec
