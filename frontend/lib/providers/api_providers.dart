@@ -4,11 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 
-// Dynamically determine the backend API base URL based on environment or compile-time variable
-final String baseUrl = const String.fromEnvironment('API_BASE_URL').isNotEmpty
-    ? const String.fromEnvironment('API_BASE_URL')
+final String _rawBaseUrl = const String.fromEnvironment('API_BASE_URL').trim();
+final String baseUrl = _rawBaseUrl.isNotEmpty
+    ? (_rawBaseUrl.endsWith('/api') || _rawBaseUrl.endsWith('/api/')
+        ? _rawBaseUrl
+        : (_rawBaseUrl.endsWith('/') ? '${_rawBaseUrl}api' : '$_rawBaseUrl/api'))
     : (kIsWeb
-        ? "${Uri.base.scheme}://${Uri.base.host}${Uri.base.port != 80 && Uri.base.port != 443 && Uri.base.port != 0 ? ':${Uri.base.port}' : ''}/api"
+        ? (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1'
+            ? 'http://localhost:8080/api'
+            : "${Uri.base.scheme}://${Uri.base.host}${Uri.base.port != 80 && Uri.base.port != 443 && Uri.base.port != 0 ? ':${Uri.base.port}' : ''}/api")
         : 'http://localhost:8080/api');
 
 // Current session provider (User? - null if not logged in)
