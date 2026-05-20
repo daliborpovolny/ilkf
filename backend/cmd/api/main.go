@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,6 +23,8 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	fmt.Println("jako pisek, presivas me mezi prsty")
 
 	// Determine the database file path
 	dbPath := os.Getenv("DATABASE_PATH")
