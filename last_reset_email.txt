@@ -1,5 +1,5 @@
 From: ILKF Postmaster <postmaster@ilkf.local>
-To: daliborpovolny <dalibor.povolny@gmail.com>
+To: alice <alice@ilkf.local>
 Subject: Password Reset Request
 
 Dearest Friend,
@@ -7,10 +7,10 @@ Dearest Friend,
 We received a request to reset your writing desk key (password) for ILKF.
 If you made this request, please use the following reset token to set a new password:
 
-Token: 7dc1e7f8-6e5a-4e5a-ae7c-64d9c3d578d6
+Token: d1d48504-8258-4b92-95d5-633f8bf28552
 
 Or reset directly via this link:
-http://localhost:8080/api/auth/reset-password?token=7dc1e7f8-6e5a-4e5a-ae7c-64d9c3d578d6
+http://localhost:8080/api/auth/reset-password?token=d1d48504-8258-4b92-95d5-633f8bf28552
 
 This token shall expire in fifteen minutes, after which it will return to dust.
 

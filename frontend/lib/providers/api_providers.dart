@@ -1,10 +1,15 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 
-// Configurable backend URL
-const String baseUrl = 'http://localhost:8080/api';
+// Dynamically determine the backend API base URL based on environment or compile-time variable
+final String baseUrl = const String.fromEnvironment('API_BASE_URL').isNotEmpty
+    ? const String.fromEnvironment('API_BASE_URL')
+    : (kIsWeb
+        ? "${Uri.base.scheme}://${Uri.base.host}${Uri.base.port != 80 && Uri.base.port != 443 && Uri.base.port != 0 ? ':${Uri.base.port}' : ''}/api"
+        : 'http://localhost:8080/api');
 
 // Current session provider (User? - null if not logged in)
 final sessionProvider = StateProvider<User?>((ref) => null);

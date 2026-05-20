@@ -1,0 +1,138 @@
+name: ILKF Production Continuous Deployment
+
+on:
+  push:
+    branches:
+      - prod
+
+# Grant permissions for GHCR package publishing
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # =======================================================
+  # JOB 1: Build and Push Docker Backend to GHCR
+  # =======================================================
+  build-and-push-backend:
+    name: Build & Push Go Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-docker-action@v1.0.0
+        # Optional fallback or default action to initialize buildx
+        with:
+          version: latest
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Downcase Repository Name for Docker Tagging
+        run: |
+          echo "REPO_OWNER_LC=${OWNER,,}" >> ${GITHUB_ENV}
+        env:
+          OWNER: '${{ github.repository_owner }}'
+
+      - name: Build and Push Backend Docker Image
+        run: |
+          docker build \
+            -t ghcr.io/${{ env.REPO_OWNER_LC }}/ilkf-backend:latest \
+            -t ghcr.io/${{ env.REPO_OWNER_LC }}/ilkf-backend:${{ github.sha }} \
+            ./backend
+          
+          docker push ghcr.io/${{ env.REPO_OWNER_LC }}/ilkf-backend:latest
+          docker push ghcr.io/${{ env.REPO_OWNER_LC }}/ilkf-backend:${{ github.sha }}
+
+  # =======================================================
+  # JOB 2: Build and Deploy Flutter Web Frontend to Cloudflare Pages
+  # =======================================================
+  build-and-deploy-frontend:
+    name: Build & Deploy Flutter Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: flutter pub get
+
+      - name: Compile Flutter Web
+        working-directory: ./frontend
+        run: |
+          flutter build web \
+            --release \
+            --dart-define=API_BASE_URL="${{ secrets.API_BASE_URL }}"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'ilkf-web' # Replace with your Cloudflare Pages project name
+          directory: 'frontend/build/web'
+          gitBranch: 'prod'
+
+  # =======================================================
+  # JOB 3: SSH into Oracle Cloud VM & Orchestrate Containers
+  # =======================================================
+  ssh-deploy-backend:
+    name: Deploy Backend to Oracle VM
+    runs-on: ubuntu-latest
+    needs: build-and-push-backend
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Downcase Repository Name
+        run: |
+          echo "REPO_OWNER_LC=${OWNER,,}" >> ${GITHUB_ENV}
+        env:
+          OWNER: '${{ github.repository_owner }}'
+
+      - name: Copy docker-compose.yml to Oracle Cloud VM
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/${{ secrets.ORACLE_USER }}/ilkf"
+
+      - name: Run SSH Deployment Script on Oracle VM
+        uses: appleboy/ssh-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          TUNNEL_TOKEN: ${{ secrets.TUNNEL_TOKEN }}
+          REPO_OWNER_LC: ${{ env.REPO_OWNER_LC }}
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          envs: GITHUB_TOKEN,GITHUB_ACTOR,TUNNEL_TOKEN,REPO_OWNER_LC
+          script: |
+            cd /home/${{ secrets.ORACLE_USER }}/ilkf
+            
+            # Log in to GHCR to pull package image on the host VM
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            
+            # Export environment secrets
+            export TUNNEL_TOKEN="$TUNNEL_TOKEN"
+            export GITHUB_REPOSITORY_OWNER="$REPO_OWNER_LC"
+            
+            # Orchestrate docker compose
+            docker compose pull
+            docker compose up -d --remove-orphans
+            
+            # Optional cleanup
+            docker image prune -f

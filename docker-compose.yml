@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-daliborpovolny}/ilkf-backend:latest
+    container_name: ilkf-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080" # Bind locally to host so it's not exposed to the public internet directly
+    environment:
+      - APP_ENV=production
+      - PORT=8080
+      - DATABASE_PATH=/app/data/ilkf.db
+    volumes:
+      - ilkf-data:/app/data
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: ilkf-tunnel
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN} # Dynamically populated from environment or .env file on the VM
+    command: tunnel --no-autoupdate run
+
+volumes:
+  ilkf-data:
+    name: ilkf-production-sqlite-data

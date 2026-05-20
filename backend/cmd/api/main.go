@@ -32,10 +32,15 @@ func main() {
 	log.Printf("Initializing database at: %s", dbPath)
 
 	// Development Mode: Drop the existing database on startup to recreate fresh schema
-	log.Printf("Development Mode: Dropping existing database at %s to start fresh...", dbPath)
-	_ = os.Remove(dbPath)
-	_ = os.Remove(dbPath + "-shm")
-	_ = os.Remove(dbPath + "-wal")
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv != "production" {
+		log.Printf("Development Mode (APP_ENV=%s): Dropping existing database at %s to start fresh...", appEnv, dbPath)
+		_ = os.Remove(dbPath)
+		_ = os.Remove(dbPath + "-shm")
+		_ = os.Remove(dbPath + "-wal")
+	} else {
+		log.Printf("Production Mode: Keeping existing database at %s persistent.", dbPath)
+	}
 
 	// Ensure the parent directory of the database file exists
 	dbDir := filepath.Dir(dbPath)
