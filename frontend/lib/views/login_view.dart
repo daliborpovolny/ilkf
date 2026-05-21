@@ -133,7 +133,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   style: GoogleFonts.ebGaramond(
                     fontSize: 16,
                     fontStyle: FontStyle.italic,
-                    color: VintageTheme.inkBlue.withOpacity(0.7),
+                    color: VintageTheme.inkBlue.withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -141,7 +141,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 Container(
                   height: 1.5,
                   width: 80,
-                  color: VintageTheme.inkBlue.withOpacity(0.3),
+                  color: VintageTheme.inkBlue.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 28),
 
@@ -172,7 +172,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             style: GoogleFonts.ebGaramond(
                               fontSize: 18,
                               fontWeight: !_isRegisterMode ? FontWeight.bold : FontWeight.w500,
-                              color: !_isRegisterMode ? VintageTheme.inkBlue : VintageTheme.inkBlue.withOpacity(0.5),
+                              color: !_isRegisterMode ? VintageTheme.inkBlue : VintageTheme.inkBlue.withValues(alpha: 0.5),
                             ),
                           ),
                         ),
@@ -202,7 +202,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             style: GoogleFonts.ebGaramond(
                               fontSize: 18,
                               fontWeight: _isRegisterMode ? FontWeight.bold : FontWeight.w500,
-                              color: _isRegisterMode ? VintageTheme.inkBlue : VintageTheme.inkBlue.withOpacity(0.5),
+                              color: _isRegisterMode ? VintageTheme.inkBlue : VintageTheme.inkBlue.withValues(alpha: 0.5),
                             ),
                           ),
                         ),
@@ -221,7 +221,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     style: GoogleFonts.ebGaramond(fontSize: 18, color: VintageTheme.inkBlue),
                     decoration: InputDecoration(
                       hintText: 'Enter Username or Email...',
-                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                       filled: true,
                       fillColor: VintageTheme.parchmentLight,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -243,7 +243,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     style: GoogleFonts.ebGaramond(fontSize: 18, color: VintageTheme.inkBlue),
                     decoration: InputDecoration(
                       hintText: 'Enter Password Key...',
-                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                       filled: true,
                       fillColor: VintageTheme.parchmentLight,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -296,7 +296,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     style: GoogleFonts.ebGaramond(fontSize: 18, color: VintageTheme.inkBlue),
                     decoration: InputDecoration(
                       hintText: 'Enter Username...',
-                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                       filled: true,
                       fillColor: VintageTheme.parchmentLight,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -318,7 +318,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     style: GoogleFonts.ebGaramond(fontSize: 18, color: VintageTheme.inkBlue),
                     decoration: InputDecoration(
                       hintText: 'Enter Email Address...',
-                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                       filled: true,
                       fillColor: VintageTheme.parchmentLight,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -340,7 +340,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     style: GoogleFonts.ebGaramond(fontSize: 18, color: VintageTheme.inkBlue),
                     decoration: InputDecoration(
                       hintText: 'Enter Password Key...',
-                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                      hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                       filled: true,
                       fillColor: VintageTheme.parchmentLight,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -530,7 +530,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.ebGaramond(
                   fontSize: 16,
-                  color: VintageTheme.inkBlue.withOpacity(0.8),
+                  color: VintageTheme.inkBlue.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 24),
@@ -552,7 +552,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
                 style: GoogleFonts.ebGaramond(
                   fontSize: 16,
                   height: 1.4,
-                  color: VintageTheme.inkBlue.withOpacity(0.8),
+                  color: VintageTheme.inkBlue.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 20),
@@ -562,7 +562,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
                 style: GoogleFonts.ebGaramond(fontSize: 16, color: VintageTheme.inkBlue),
                 decoration: InputDecoration(
                   hintText: 'Enter your email address...',
-                  hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                  hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                   filled: true,
                   fillColor: VintageTheme.parchmentLight,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -604,7 +604,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
                 style: GoogleFonts.ebGaramond(
                   fontSize: 16,
                   height: 1.4,
-                  color: VintageTheme.inkBlue.withOpacity(0.8),
+                  color: VintageTheme.inkBlue.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 20),
@@ -614,7 +614,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
                 style: GoogleFonts.ebGaramond(fontSize: 16, color: VintageTheme.inkBlue),
                 decoration: InputDecoration(
                   hintText: 'Enter reset token...',
-                  hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                  hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                   filled: true,
                   fillColor: VintageTheme.parchmentLight,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -636,7 +636,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
                 style: GoogleFonts.ebGaramond(fontSize: 16, color: VintageTheme.inkBlue),
                 decoration: InputDecoration(
                   hintText: 'Enter new password key...',
-                  hintStyle: TextStyle(color: VintageTheme.inkBlue.withOpacity(0.4)),
+                  hintStyle: TextStyle(color: VintageTheme.inkBlue.withValues(alpha: 0.4)),
                   filled: true,
                   fillColor: VintageTheme.parchmentLight,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

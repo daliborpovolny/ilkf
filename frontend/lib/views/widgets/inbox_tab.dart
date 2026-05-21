@@ -34,7 +34,7 @@ class InboxTab extends ConsumerWidget {
               final isUnread = letter.readAt == null;
 
               return Card(
-                color: isUnread ? VintageTheme.parchmentLight : VintageTheme.parchmentLight.withOpacity(0.85),
+                color: isUnread ? VintageTheme.parchmentLight : VintageTheme.parchmentLight.withValues(alpha: 0.85),
                 child: ListTile(
                   title: Row(
                     children: [
@@ -54,7 +54,7 @@ class InboxTab extends ConsumerWidget {
                           letter.subject,
                           style: TextStyle(
                             fontWeight: isUnread ? FontWeight.w900 : FontWeight.bold,
-                            color: isUnread ? VintageTheme.inkBlue : VintageTheme.inkBlue.withOpacity(0.6),
+                            color: isUnread ? VintageTheme.inkBlue : VintageTheme.inkBlue.withValues(alpha: 0.6),
                           ),
                         ),
                       ),
@@ -63,7 +63,7 @@ class InboxTab extends ConsumerWidget {
                   subtitle: Text(
                     'From: ${letter.senderUsername.isNotEmpty ? letter.senderUsername : (letter.senderId == 'system' ? 'System' : 'Unknown')}',
                     style: TextStyle(
-                      color: isUnread ? VintageTheme.inkBlue.withOpacity(0.8) : VintageTheme.inkBlue.withOpacity(0.5),
+                      color: isUnread ? VintageTheme.inkBlue.withValues(alpha: 0.8) : VintageTheme.inkBlue.withValues(alpha: 0.5),
                     ),
                   ),
                   trailing: Icon(

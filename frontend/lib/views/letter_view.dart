@@ -46,7 +46,7 @@ class LetterView extends ConsumerWidget {
             style: GoogleFonts.ebGaramond(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: VintageTheme.inkBlue.withOpacity(0.8),
+              color: VintageTheme.inkBlue.withValues(alpha: 0.8),
             ),
           ),
           Text(
@@ -54,7 +54,7 @@ class LetterView extends ConsumerWidget {
             style: GoogleFonts.ebGaramond(
               fontSize: 14,
               fontStyle: timestamp == null ? FontStyle.italic : FontStyle.normal,
-              color: timestamp == null ? VintageTheme.waxSealRed.withOpacity(0.8) : VintageTheme.inkBlue,
+              color: timestamp == null ? VintageTheme.waxSealRed.withValues(alpha: 0.8) : VintageTheme.inkBlue,
             ),
           ),
         ],
@@ -100,7 +100,7 @@ class LetterView extends ConsumerWidget {
                           style: GoogleFonts.ebGaramond(
                             fontSize: 14,
                             fontStyle: FontStyle.italic,
-                            color: VintageTheme.inkBlue.withOpacity(0.6),
+                            color: VintageTheme.inkBlue.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -114,7 +114,7 @@ class LetterView extends ConsumerWidget {
                               : 'Addressed to: You',
                       style: GoogleFonts.ebGaramond(
                         fontSize: 16,
-                        color: VintageTheme.inkBlue.withOpacity(0.7),
+                        color: VintageTheme.inkBlue.withValues(alpha: 0.7),
                       ),
                     ),
                     if (senderName == 'You' && letter.recipientId != null) ...[

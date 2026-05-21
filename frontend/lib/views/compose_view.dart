@@ -231,7 +231,7 @@ class _ComposeViewState extends ConsumerState<ComposeView> {
                       style: themeExtension.handwritingStyle,
                       decoration: InputDecoration(
                         hintText: 'My dearest friend...\n\nBegin your slow correspondence here with deliberate ink strokes.',
-                        hintStyle: themeExtension.handwritingStyle.copyWith(color: VintageTheme.inkBlue.withOpacity(0.3)),
+                        hintStyle: themeExtension.handwritingStyle.copyWith(color: VintageTheme.inkBlue.withValues(alpha: 0.3)),
                         border: InputBorder.none,
                       ),
                       validator: (val) => val == null || val.isEmpty ? 'Your letter has no words yet' : null,

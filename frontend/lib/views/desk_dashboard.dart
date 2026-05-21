@@ -101,7 +101,7 @@ class DeskDashboard extends ConsumerWidget {
           children: [
             TabBar(
               labelColor: VintageTheme.inkBlue,
-              unselectedLabelColor: VintageTheme.inkBlue.withOpacity(0.5),
+              unselectedLabelColor: VintageTheme.inkBlue.withValues(alpha: 0.5),
               indicatorColor: VintageTheme.antiqueGold,
               labelStyle: GoogleFonts.ebGaramond(fontSize: 16, fontWeight: FontWeight.bold),
               tabs: const [
@@ -134,7 +134,7 @@ class DeskDashboard extends ConsumerWidget {
           children: [
             TabBar(
               labelColor: VintageTheme.inkBlue,
-              unselectedLabelColor: VintageTheme.inkBlue.withOpacity(0.5),
+              unselectedLabelColor: VintageTheme.inkBlue.withValues(alpha: 0.5),
               indicatorColor: VintageTheme.antiqueGold,
               labelStyle: GoogleFonts.ebGaramond(fontSize: 16, fontWeight: FontWeight.bold),
               tabs: const [

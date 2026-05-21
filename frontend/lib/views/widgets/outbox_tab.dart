@@ -41,7 +41,7 @@ class OutboxTab extends ConsumerWidget {
               
               String subtitleText = 'To: $recipientName';
               IconData trailingIcon = Icons.markunread_mailbox;
-              Color iconColor = VintageTheme.inkBlue.withOpacity(0.5);
+              Color iconColor = VintageTheme.inkBlue.withValues(alpha: 0.5);
 
               if (isPublic) {
                 subtitleText = 'Public Board: $recipientName';
@@ -70,7 +70,7 @@ class OutboxTab extends ConsumerWidget {
                   subtitle: Text(
                     subtitleText,
                     style: TextStyle(
-                      color: isInTransit ? Colors.grey : VintageTheme.inkBlue.withOpacity(0.6),
+                      color: isInTransit ? Colors.grey : VintageTheme.inkBlue.withValues(alpha: 0.6),
                       fontStyle: isInTransit ? FontStyle.italic : FontStyle.normal,
                     ),
                   ),

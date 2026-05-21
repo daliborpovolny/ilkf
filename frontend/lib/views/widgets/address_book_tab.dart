@@ -85,7 +85,7 @@ class AddressBookTab extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: VintageTheme.waxSealRed.withOpacity(0.1),
+                                color: VintageTheme.waxSealRed.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(2),
                                 border: Border.all(color: VintageTheme.waxSealRed, width: 0.5),
                               ),
